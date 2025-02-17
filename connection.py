@@ -8,7 +8,6 @@ read.registers
 
 if(read.isError()):
     raise Exception("Error reading the registers")
-
 else:
     data = read
 
