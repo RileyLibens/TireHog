@@ -1,6 +1,15 @@
-from pymodbus.client.sync import ModbusTcpClient
-client = ModbusTcpClient(" ", port=, timeout=3)
+from pymodbus.client.sync import ModbusSerialClient
+
+client = ModbusSerialClient(method="rtu", port="COM1", baudrate = 9600, timeout=3)
 client.connect()
-read=client.read_holding_registers(address = NEED TO BE FILLED)
+
+read = client.read_holding_registers(address=0, unit=1)
 read.registers
-data = read
+
+if(read.isError()):
+    raise Exception("Error reading the registers")
+
+else:
+    data = read
+
+client.close()
