@@ -4,7 +4,14 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 import pandas as pd
 import numpy as np
+import os
+# Define the folder path
+folder_path = "./Tirehog Dummy Data"  # Adjust this path if necessary
 
+# Get all Excel file names matching the pattern "ModifiedDataSample_*"
+file_names = [file for file in os.listdir(folder_path) if file.startswith("ModifiedDataSample_") and file.endswith(".xlsx")]
+# Print the loaded file names
+print("Files found:", file_names)
 # Load Excel file
 file_name = 'Test.xlsx'
 sheet_name = 'Sheet1'
