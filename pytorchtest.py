@@ -3,30 +3,65 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 import pandas as pd
+import numpy as np
 
-# Load Excel file (replace 'data.xlsx' with your file name)
-df = pd.read_excel('CleanDataSample.xlsx', sheet_name='Sheet1')  # Change sheet name if needed
+# Load Excel file
+file_name = 'Test.xlsx'
+sheet_name = 'Sheet1'
+df = pd.read_excel(file_name, sheet_name=sheet_name)
 
-# Display the first few rows
+# Display the first few rows to verify the data
 print(df.head())
 
+# Strip spaces or unwanted characters from column names
+df.columns = df.columns.str.strip()
+
+# Define feature columns and the target column
+X_columns = [col for col in [
+    "Desc", "Date", "Time", "C1 Temp", "C2 Temp", "C3 Temp",
+    "Con1Inlet", "Con1Pressure", "Con2Pressure", "Con3Pressure",
+    "Con2Inlet", "Con3Inlet", "C1Pressure", "C2Pressure", "C3Pressure",
+    "Height", "BeltAdj", "Oil IN Temp", "Oil OUT Temp", "Oil Pressure",
+    "WaterinTemp", "WaterFlowrate", "WGen1Temp", "WGen2Temp"
+] if col in df.columns]  # Only include columns that exist in the DataFrame
+
+y_column = "Height"  # Target column
+
+# Verify the columns in the DataFrame
+print("Columns in the DataFrame:", df.columns.tolist())
+
+# Ensure all data in the selected columns is numeric
+df[X_columns] = df[X_columns].apply(pd.to_numeric, errors='coerce')  # Convert non-numeric values to NaN
+df[y_column] = pd.to_numeric(df[y_column], errors='coerce')
+
+# Handle missing values (NaN) by replacing them with a default value, e.g., 0
+df.fillna(0, inplace=True)
+
+# Extract features (X) and target (y)
+X_data = df[X_columns].values
+y_data = df[y_column].values.reshape(-1, 1)
+
+# Custom Dataset class
 class CustomDataset(Dataset):
     def __init__(self, X, y):
         self.X = torch.tensor(X, dtype=torch.float32)
         self.y = torch.tensor(y, dtype=torch.float32)
-    
+
     def __len__(self):
         return len(self.X)
-    
+
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
-# Example data (replace with real dataset)
-X_data = [[1.0], [2.0], [3.0], [4.0]]
-y_data = [[2.0], [4.0], [6.0], [8.0]]
-
+# Create dataset and dataloader
 dataset = CustomDataset(X_data, y_data)
-dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=2, shuffle=True) # Proccesses 2 shuffled samples together
+
+# Example: Iterate through the dataloader
+for batch_idx, (features, targets) in enumerate(dataloader):
+    print(f"Batch {batch_idx + 1}")
+    print("Features:", features)
+    print("Targets:", targets)
 '''
 class SimpleNN(nn.Module):
     def __init__(self):
