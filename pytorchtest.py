@@ -12,6 +12,8 @@ folder_path = "./Tirehog Dummy Data"  # Adjust this path if necessary
 file_names = [file for file in os.listdir(folder_path) if file.startswith("ModifiedDataSample_") and file.endswith(".xlsx")]
 # Print the loaded file names
 print("Files found:", file_names)
+
+
 # Load Excel file
 file_name = 'Test.xlsx'
 sheet_name = 'Sheet1'
@@ -69,44 +71,56 @@ for batch_idx, (features, targets) in enumerate(dataloader):
     print(f"Batch {batch_idx + 1}")
     print("Features:", features)
     print("Targets:", targets)
-'''
-class SimpleNN(nn.Module):
-    def __init__(self):
-        super(SimpleNN, self).__init__()
-        self.layer1 = nn.Linear(1, 10)  # Input layer to hidden
-        self.relu = nn.ReLU()
-        self.layer2 = nn.Linear(10, 1)  # Hidden to output
     
+    
+    
+    
+# Define the RNN Model
+class RNNModel(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, output_size):
+        super(RNNModel, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+
     def forward(self, x):
-        x = self.layer1(x)
-        x = self.relu(x)
-        x = self.layer2(x)
-        return x
+        # Initialize hidden state with zeros
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
 
-model = SimpleNN()
+        # Forward propagate through RNN
+        out, _ = self.rnn(x, h0)
+        
+        # Decode the last hidden state to the output
+        out = self.fc(out[:, -1, :])  # Only take the output of the last timestep
+        return out
 
-criterion = nn.MSELoss()  # Mean Squared Error for regression
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+# Hyperparameters
+input_size = len(X_columns)  # Number of input features
+hidden_size = 64  # Can be tuned based on experimentation
+num_layers = 2  # Number of stacked RNN layers
+output_size = 1  # Since we are predicting 'Height'
+learning_rate = 0.001  # Typical starting value for learning rate
 
-num_epochs = 100
+# Initialize the model, loss function, and optimizer
+model = RNNModel(input_size, hidden_size, num_layers, output_size)
+criterion = nn.MSELoss()  # Mean Squared Error for regression tasks
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+# Example Training Loop
+num_epochs = 10  # Can be adjusted as needed
 for epoch in range(num_epochs):
-    for X_batch, y_batch in dataloader:
-        optimizer.zero_grad()  # Reset gradients
-        outputs = model(X_batch)  # Forward pass
-        loss = criterion(outputs, y_batch)  # Compute loss
-        loss.backward()  # Backward pass (compute gradients)
-        optimizer.step()  # Update weights
-    
-    if (epoch + 1) % 10 == 0:
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+    for features, targets in dataloader:
+        # Reshape input to (batch_size, sequence_length, input_size)
+        features = features.unsqueeze(1)  # Add sequence dimension
 
+        # Forward pass
+        outputs = model(features)
+        loss = criterion(outputs, targets)
 
-# Save model
-torch.save(model.state_dict(), 'model.pth')
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-# Load model
-model = SimpleNN()
-model.load_state_dict(torch.load('model.pth'))
-model.eval()
-'''
+    print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}")
