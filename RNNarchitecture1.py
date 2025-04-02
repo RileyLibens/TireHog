@@ -52,39 +52,39 @@ def __getitem__(self, idx):
     target = torch.tensor(x.size(0), dtype=torch.float)
     return x, target
 def collate_fn(batch):
-# Each sample in batch is a tuple (x, target)
-sequences, targets = zip(*batch)
-# Get the original lengths for each sample
-lengths = torch.tensor([seq.size(0) for seq in sequences], dtype=torch.long)
-# Sort sequences by length in descending order (required for pack_padded_sequence)
-lengths, idx_sort = lengths.sort(descending=True)
-sequences = [sequences[i] for i in idx_sort]
-targets = torch.stack([targets[i] for i in idx_sort])
-# Pad sequences so that all have the same length in the batch.
-padded_sequences = pad_sequence(sequences, batch_first=True)
-return padded_sequences, lengths, targets
+    # Each sample in batch is a tuple (x, target)
+    sequences, targets = zip(*batch)
+    # Get the original lengths for each sample
+    lengths = torch.tensor([seq.size(0) for seq in sequences], dtype=torch.long)
+    # Sort sequences by length in descending order (required for pack_padded_sequence)
+    lengths, idx_sort = lengths.sort(descending=True)
+    sequences = [sequences[i] for i in idx_sort]
+    targets = torch.stack([targets[i] for i in idx_sort])
+    # Pad sequences so that all have the same length in the batch.
+    padded_sequences = pad_sequence(sequences, batch_first=True)
+    return padded_sequences, lengths, targets
 
-Create the dataset and dataloader.
+#Create the dataset and dataloader.
 dataset = SequenceDataset(fullDataSet)
 dataloader = DataLoader(dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
 
-###############################################################
 
+"""
 Define the RNN Model
 The model takes inputs of shape (batch_size, max_seq_length, input_size)
 and processes them with an RNN. A fully connected layer decodes the final
 hidden state into a single scalar output.
 Xavier uniform initialization is applied to both the fc layer and all RNN
 weight parameters.
-###############################################################
+"""
+
 class RNNModel(nn.Module):
-def init(self, input_size, hidden_size, num_layers, output_size):
-super(RNNModel, self).init()
-self.hidden_size = hidden_size
-self.num_layers = num_layers
+    def init(self, input_size, hidden_size, num_layers, output_size):
+    super(RNNModel, self).init()
+    self.hidden_size = hidden_size
+    self.num_layers = num_layers
 
 
-Collapse
     # RNN layer
     self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
 
@@ -122,36 +122,37 @@ def forward(self, x, lengths):
     # Decode the last outputs to obtain our prediction.
     output = self.fc(last_outputs)
     return output
-Determine the input size from one sample's feature dimension (D).
-if len(fullDataSet) > 0:
-input_size = fullDataSet[0].size(1)
-else:
-input_size = 10 # A default value in case fullDataSet is empty
+    #Determine the input size from one sample's feature dimension (D).
 
-Hyperparameters
+if len(fullDataSet) > 0:
+    input_size = fullDataSet[0].size(1)
+else:
+    input_size = 10 # A default value in case fullDataSet is empty
+
+#Hyperparameters
 hidden_size = 64 # Number of hidden units in the RNN; can be tuned.
 num_layers = 2 # Number of stacked RNN layers.
 output_size = 1 # Single scalar output (here, the predicted sequence length).
 learning_rate = 0.001
 
-Initialize model, loss function, and optimizer.
+#Initialize model, loss function, and optimizer.
 model = RNNModel(input_size, hidden_size, num_layers, output_size)
 criterion = nn.MSELoss() # Mean Squared Error for regression.
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-###############################################################
-
+"""
 Training Loop
 For each epoch and batch, we feed the padded sequences (and their true lengths)
 into the network, compute the loss with respect to the true sequence lengths, and
 update the model parameters using backpropagation.
-###############################################################
+"""
+
 num_epochs = 10
 for epoch in range(num_epochs):
-for features, lengths, targets in dataloader:
-optimizer.zero_grad()
-outputs = model(features, lengths)
-loss = criterion(outputs, targets)
-loss.backward()
-optimizer.step()
-print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}")
+    for features, lengths, targets in dataloader:
+        optimizer.zero_grad()
+        outputs = model(features, lengths)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}")
