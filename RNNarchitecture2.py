@@ -59,7 +59,7 @@ class TirehogRunDataset(Dataset):
         
         # Process each file
         for file in os.listdir(folder_path):
-            if file.startswith("ModifiedDataSample") and file.endswith(".xlsx"):
+            if file.startswith("NewModifiedDataDuration") and file.endswith(".xlsx"):
                 file_path = os.path.join(folder_path, file)
                 
                 # Use the safe read function
